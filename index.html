@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inventory Health Scorecard</title>
+<meta name="description" content="Weekly inventory health scorecard for a multi-province regulated vape business: weeks of supply, co-packer performance, aged inventory and three-way reconciliation. Illustrative data.">
+<meta name="author" content="Meher Vamsi Dontoju">
+<style>
+:root{
+  color-scheme: light;
+  --page:#f6f5f2; --surface:#fcfcfb; --surface-2:#f3f2ee; --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e7e6e0; --axis:#c3c2b7; --ring:rgba(11,11,11,.09); --shadow:0 1px 2px rgba(11,11,11,.04),0 8px 24px -12px rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b; --neutral:#d9d8d2;
+  --good-ink:#006300; --crit-ink:#b42d2d; --accent:#1c5cab; --chip:#ecebe6;
+  --cell-good:#d6eed6; --cell-warn:#fde7b4; --cell-crit:#f6cdcd; --cell-over:#cde2fb;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --page:#0d0d0d; --surface:#1a1a19; --surface-2:#222220; --ink:#f0efec; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.09); --shadow:none;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+    --good-ink:#0ca30c; --crit-ink:#e66767; --accent:#86b6ef; --chip:#2a2a28; --neutral:#454542;
+    --cell-good:#173d17; --cell-warn:#4a3a0f; --cell-crit:#4d1f1f; --cell-over:#16345c;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --page:#0d0d0d; --surface:#1a1a19; --surface-2:#222220; --ink:#f0efec; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.09); --shadow:none;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --good-ink:#0ca30c; --crit-ink:#e66767; --accent:#86b6ef; --chip:#2a2a28; --neutral:#454542;
+  --cell-good:#173d17; --cell-warn:#4a3a0f; --cell-crit:#4d1f1f; --cell-over:#16345c;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--page);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 16px 64px}
+header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 6px}
+h1{font-size:30px;line-height:1.15;margin:0;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--ink-2);margin:6px 0 0;max-width:720px}
+.top-actions{display:flex;gap:8px;align-items:center}
+button{font:inherit;color:inherit}
+.btn{background:var(--surface);border:1px solid var(--ring);border-radius:999px;padding:7px 14px;cursor:pointer;font-size:13px;font-weight:500}
+.btn:hover{background:var(--surface-2)}
+.notice{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--ring);border-left:3px solid var(--accent);border-radius:10px;padding:10px 14px;color:var(--ink-2);font-size:13px;margin-bottom:18px}
+.notice b{color:var(--ink)}
+.filters{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:0 0 18px}
+.seg{display:inline-flex;background:var(--chip);border-radius:999px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer;color:var(--ink-2);font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.flabel{font-size:12px;color:var(--muted);margin-right:8px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--surface);border:1px solid var(--ring);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);min-width:0}
+.kpi .k{font-size:12px;color:var(--ink-2);font-weight:500;display:flex;gap:6px;align-items:center}
+.kpi .v{font-size:28px;font-weight:700;letter-spacing:-.02em;margin-top:4px;line-height:1.1}
+.kpi .d{font-size:12px;color:var(--muted);margin-top:4px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--ring);border-radius:16px;padding:18px 18px 16px;box-shadow:var(--shadow);min-width:0}
+.c12{grid-column:span 12}.c7{grid-column:span 7}.c5{grid-column:span 5}.c6{grid-column:span 6}.c8{grid-column:span 8}.c4{grid-column:span 4}
+.card h2{font-size:16px;margin:0;font-weight:650;letter-spacing:-.01em}
+.card .cs{color:var(--ink-2);font-size:13px;margin:3px 0 12px}
+.card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink-2);margin:2px 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+.ln{width:16px;height:2px;border-radius:2px;display:inline-block}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--axis);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--grid);vertical-align:top}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;white-space:nowrap}
+.tag i{font-style:normal;display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;font-size:10px;color:#fff;font-weight:800}
+.t-crit i{background:var(--crit)}.t-warn i{background:var(--warn);color:#0b0b0b}.t-good i{background:var(--good)}.t-over i{background:var(--s1)}.t-serious i{background:var(--serious)}.t-neutral i{background:var(--muted)}
+.owner{font-size:12px;color:var(--ink-2);background:var(--chip);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.heat{display:grid;gap:3px;min-width:560px}
+.heat .hh{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:4px 6px;text-align:center}
+.heat .hh.l{text-align:left}
+.heat .rl{font-size:13px;padding:6px 6px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.heat .rl small{color:var(--muted);font-size:11px}
+.cell{border-radius:6px;display:flex;align-items:center;justify-content:center;gap:4px;font-variant-numeric:tabular-nums;font-weight:600;font-size:13px;min-height:40px;cursor:default;outline:none;position:relative}
+.cell:hover,.cell:focus-visible{box-shadow:inset 0 0 0 2px var(--ink)}
+.c-crit{background:var(--cell-crit)}.c-warn{background:var(--cell-warn)}.c-good{background:var(--cell-good)}.c-over{background:var(--cell-over)}.c-na{background:var(--surface-2);color:var(--muted)}
+.cell .ic{font-size:10px;font-weight:800}
+.chart{width:100%;display:block}
+.chart text{fill:var(--muted);font-size:11px;font-family:inherit}
+#tip{position:fixed;z-index:50;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--ring);border-radius:10px;padding:9px 11px;font-size:12px;box-shadow:0 10px 30px -10px rgba(0,0,0,.35);opacity:0;transition:opacity .08s;max-width:260px}
+#tip .tt{font-weight:650;margin-bottom:4px}
+#tip .row{display:flex;justify-content:space-between;gap:14px;color:var(--ink-2)}
+#tip .row b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+.sop ol{margin:0;padding-left:20px;color:var(--ink-2)}
+.sop li{margin:0 0 8px}
+.sop li b{color:var(--ink)}
+.defs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;font-size:13px;color:var(--ink-2)}
+.defs b{color:var(--ink)}
+footer{margin-top:22px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+footer a{color:var(--ink-2)}
+.toggle{font-size:12px;border:1px solid var(--ring);background:transparent;border-radius:999px;padding:4px 10px;cursor:pointer;color:var(--ink-2)}
+.bigstat{display:flex;gap:22px;flex-wrap:wrap;margin:-2px 0 8px}
+.bigstat div{font-size:12px;color:var(--ink-2)}
+.bigstat b{display:block;font-size:20px;color:var(--ink);letter-spacing:-.01em}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.c7,.c5,.c6,.c8,.c4{grid-column:span 12}}
+@media (max-width:560px){h1{font-size:24px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi .v{font-size:24px}.defs{grid-template-columns:1fr}.filters{gap:10px}}
+@media print{.btn,.filters .seg{display:none}body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow" id="weekLabel">Weekly supply chain scorecard</p>
+      <h1>Inventory Health Scorecard</h1>
+      <p class="sub">Right SKU, right board, right week. Weeks of supply, co-packer performance, aged inventory and three-way reconciliation across Ontario, Alberta, Saskatchewan and Manitoba.</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="themeBtn" type="button">Dark mode</button>
+      <button class="btn" type="button" onclick="window.print()">Print</button>
+    </div>
+  </header>
+
+  <div class="notice" role="note"><span aria-hidden="true">ⓘ</span><div><b>Illustrative build.</b> All figures are simulated to show how I would run this function in week one. No company data was used, and SKU names are generic. Prepared by Meher Vamsi Dontoju for the Supply Chain &amp; Inventory Analyst role.</div></div>
+
+  <div class="filters">
+    <div><span class="flabel">Province</span><span class="seg" id="fProv"></span></div>
+    <div><span class="flabel">Format</span><span class="seg" id="fFmt"></span></div>
+  </div>
+
+  <section class="kpis" id="kpis" aria-label="Key indicators"></section>
+
+  <div class="grid">
+    <section class="card c12">
+      <div class="card-head">
+        <div><h2>Where stock runs out next</h2><p class="cs">On-hand weeks of supply by SKU and province, at the last four weeks' average sell-through. Hover a cell for on-order, ETA and projected stock-out date.</p></div>
+        <button class="toggle" id="heatToggle" type="button">View as table</button>
+      </div>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--cell-crit);outline:1px solid var(--crit)"></span>Stock-out risk: under 3 weeks and on-order lands too late</span>
+        <span><span class="sw" style="background:var(--cell-warn);outline:1px solid var(--warn)"></span>Watch: under 5 weeks</span>
+        <span><span class="sw" style="background:var(--cell-good);outline:1px solid var(--good)"></span>Healthy: 5 to 12 weeks</span>
+        <span><span class="sw" style="background:var(--cell-over);outline:1px solid var(--s1)"></span>Overstock: over 12 weeks incl. on-order</span>
+      </div>
+      <div class="scroll" id="heatWrap"></div>
+    </section>
+
+    <section class="card c12">
+      <h2>This week's action list</h2>
+      <p class="cs">Every exception in one place, ranked by how soon it hits a shelf, with an owner and a next step. This is the Monday meeting agenda.</p>
+      <div class="scroll"><table id="actions"></table></div>
+    </section>
+
+    <section class="card c7">
+      <h2>Sell-through: actual vs forecast</h2>
+      <p class="cs" id="fcSub">Weekly units, last 12 weeks plus a 4-week forward forecast.</p>
+      <div class="legend"><span><span class="ln" style="background:var(--s1)"></span>Actual</span><span><span class="ln" style="background:repeating-linear-gradient(90deg,var(--s2) 0 5px,transparent 5px 9px)"></span>Forecast</span></div>
+      <div id="fcChart"></div>
+    </section>
+
+    <section class="card c5">
+      <h2>Aged and expiring inventory</h2>
+      <p class="cs">On-hand units by days until the product's freshness limit, so disposition starts before product goes stale.</p>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--crit)"></span>30 days or less</span>
+        <span><span class="sw" style="background:var(--serious)"></span>31 to 90</span>
+        <span><span class="sw" style="background:var(--warn)"></span>91 to 180</span>
+        <span><span class="sw" style="background:var(--neutral)"></span>Over 180</span>
+      </div>
+      <div id="ageChart"></div>
+    </section>
+
+    <section class="card c6">
+      <h2>Co-packer fill rate</h2>
+      <p class="cs">Units received ÷ units ordered, by week. Target 98%.</p>
+      <div class="legend"><span><span class="ln" style="background:var(--s1)"></span>Co-packer A</span><span><span class="ln" style="background:var(--s2)"></span>Co-packer B</span><span><span class="ln" style="background:var(--s3)"></span>Co-packer C</span><span><span class="ln" style="background:repeating-linear-gradient(90deg,var(--ink-2) 0 4px,transparent 4px 7px)"></span>Target</span></div>
+      <div id="fillChart"></div>
+    </section>
+
+    <section class="card c6">
+      <h2>Co-packer on-time delivery</h2>
+      <p class="cs">POs received on or before the confirmed date, by week. Target 95%.</p>
+      <div class="legend"><span><span class="ln" style="background:var(--s1)"></span>Co-packer A</span><span><span class="ln" style="background:var(--s2)"></span>Co-packer B</span><span><span class="ln" style="background:var(--s3)"></span>Co-packer C</span><span><span class="ln" style="background:repeating-linear-gradient(90deg,var(--ink-2) 0 4px,transparent 4px 7px)"></span>Target</span></div>
+      <div id="otdChart"></div>
+    </section>
+
+    <section class="card c12">
+      <h2>Open purchase orders</h2>
+      <p class="cs">Short-fills and late POs are escalated the same day, with the stock-out exposure they create.</p>
+      <div class="scroll"><table id="pos"></table></div>
+    </section>
+
+    <section class="card c12">
+      <h2>Three-way reconciliation</h2>
+      <p class="cs">Our records vs co-packer shipment logs vs provincial board inventory reports. Anything over 0.5% gets root-caused before it is booked.</p>
+      <div class="scroll"><table id="recon"></table></div>
+    </section>
+
+    <section class="card c6 sop">
+      <h2>Stock-out escalation SOP</h2>
+      <p class="cs">The process behind the red cells, written so it runs the same way every week.</p>
+      <ol>
+        <li><b>Monday 9:00, refresh.</b> Load board sell-through and inventory reports, co-packer shipment logs and open POs. Reconcile before anything is reported.</li>
+        <li><b>Flag.</b> Any SKU under 3 weeks of supply, or under 5 weeks with no on-order landing in time, goes on the action list.</li>
+        <li><b>Check the pipeline.</b> Confirm PO quantity and date with the co-packer in writing. Short-fill or slipped date: escalate the same day.</li>
+        <li><b>Rebalance.</b> If a board is overstocked on the same SKU, propose reallocating the next order before placing a new one.</li>
+        <li><b>Close the loop.</b> Commercial Coordinator and sales get the list by noon. Every item has an owner and a date, and stays on the list until it is resolved.</li>
+      </ol>
+    </section>
+
+    <section class="card c6">
+      <h2>Definitions</h2>
+      <p class="cs">How every number on this page is calculated.</p>
+      <div class="defs" style="grid-template-columns:1fr">
+        <div><b>Weeks of supply (WOS):</b> on-hand units ÷ average weekly sell-through over the last 4 weeks.</div>
+        <div><b>Coverage:</b> (on-hand + on-order) ÷ average weekly sell-through. Drives the overstock flag.</div>
+        <div><b>Stock-out risk:</b> WOS under 3, and either nothing on order or the PO lands after projected stock-out.</div>
+        <div><b>Fill rate:</b> units received ÷ units ordered on POs due that week.</div>
+        <div><b>On-time delivery:</b> POs fully received on or before the confirmed date ÷ POs due.</div>
+        <div><b>Forecast:</b> 4-week moving average with a trend adjustment; accuracy shown as MAPE against actuals.</div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <span>Built by Meher Vamsi Dontoju · SQL data model · Excel (Power Query) and Power BI ready · <a href="https://www.linkedin.com/in/mehervamsidontoju">LinkedIn</a></span>
+    <span>Simulated data for demonstration only</span>
+  </footer>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- deterministic data ---------- */
+let seed = 20261025;
+function rnd(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+const R = (a,b)=> a + (b-a)*rnd();
+const TODAY = new Date(2026, 9, 26); // Mon Oct 26 2026
+const WEEK_END = new Date(2026, 9, 25);
+const fmtDate = d => d.toLocaleDateString("en-CA",{month:"short",day:"numeric"});
+const addDays = (d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+const nf = n => Math.round(n).toLocaleString("en-CA");
+
+const PROVS = [{id:"ON",name:"Ontario",m:1},{id:"AB",name:"Alberta",m:.58},{id:"SK",name:"Saskatchewan",m:.14},{id:"MB",name:"Manitoba",m:.12}];
+const SKUS = [
+ {id:"D1-01",name:"Mango Haze",fmt:"Disposable",size:"1.0g",base:1480,cp:"B"},
+ {id:"D1-02",name:"Berry Kush",fmt:"Disposable",size:"1.0g",base:1210,cp:"B"},
+ {id:"D1-03",name:"Peach Ringz",fmt:"Disposable",size:"1.0g",base:980,cp:"A"},
+ {id:"D1-04",name:"Tropical Punch",fmt:"Disposable",size:"1.0g",base:860,cp:"A"},
+ {id:"D1-05",name:"Mint OG",fmt:"Disposable",size:"1.0g",base:540,cp:"C"},
+ {id:"D1-06",name:"Pink Lemonade",fmt:"Disposable",size:"1.0g",base:720,cp:"B",launch:true},
+ {id:"C1-01",name:"Grape Gelato",fmt:"510 Cartridge",size:"1.0g",base:640,cp:"C"},
+ {id:"C1-02",name:"Lemon Diesel",fmt:"510 Cartridge",size:"1.0g",base:590,cp:"C"},
+ {id:"C1-03",name:"Cherry Pie",fmt:"510 Cartridge",size:"1.0g",base:450,cp:"A"},
+ {id:"C1-04",name:"Blueberry Muffin",fmt:"510 Cartridge",size:"1.0g",base:380,cp:"A"},
+ {id:"L1-01",name:"Citrus Sativa",fmt:"Liquid Diamonds",size:"1.0g",base:520,cp:"B"},
+ {id:"L1-02",name:"Cola Cookies",fmt:"Liquid Diamonds",size:"1.0g",base:310,cp:"C"}
+];
+const OVERRIDE = { // narrative cases: [wos, onOrderWeeks, etaDays]
+ "D1-01|ON":[1.6,3.2,9], "D1-02|ON":[2.4,0,0], "D1-06|AB":[1.2,4,16], "C1-02|SK":[2.1,2.5,6],
+ "C1-01|AB":[14.8,2,10], "L1-02|ON":[13.6,0,0], "C1-04|MB":[17.5,0,0], "D1-03|ON":[3.6,2.2,12], "D1-05|AB":[4.2,0,0]
+};
+const NA = {"L1-02|MB":1,"D1-06|MB":1,"D1-06|SK":1}; // not listed at that board
+
+const rows=[];
+SKUS.forEach(s=>PROVS.forEach(p=>{
+  const key=s.id+"|"+p.id;
+  if(NA[key]){ rows.push({sku:s,prov:p,na:true}); return; }
+  const avg = Math.max(12, Math.round(s.base*p.m*R(.82,1.18)));
+  let wos, ooW=0, eta=0, u=rnd();
+  if(u<.08){ wos=R(.9,2.8); } else if(u<.2){ wos=R(3,5); } else if(u<.27){ wos=R(12.5,16); } else { wos=R(5.2,10.8); }
+  if(wos<6 && rnd()<.75){ ooW=R(2.5,5); eta=Math.round(R(5,20)); }
+  else if(wos<9 && rnd()<.35){ ooW=R(2,4); eta=Math.round(R(10,24)); }
+  if(OVERRIDE[key]){ [wos,ooW,eta]=OVERRIDE[key]; }
+  const onHand=Math.round(avg*wos), onOrder=Math.round(avg*ooW);
+  const hist=[]; const trend=R(-.012,.02);
+  for(let i=11;i>=0;i--){ hist.push(Math.max(0,Math.round(avg*(1 - trend*i + 0.015*i*(s.launch?-4:0))*R(.86,1.14)))); }
+  if(s.launch){ for(let i=0;i<5;i++) hist[i]=0; }
+  // age profile: share of on-hand by bucket [<=30,31-90,91-180,>180]
+  let age;
+  if(wos>12){ age=[R(.06,.12),R(.22,.32),R(.3,.4)]; }
+  else if(wos>8){ age=[R(.0,.03),R(.06,.14),R(.25,.35)]; }
+  else { age=[0,R(0,.05),R(.12,.25)]; }
+  age.push(Math.max(0,1-age[0]-age[1]-age[2]));
+  rows.push({sku:s,prov:p,avg,onHand,onOrder,eta,wos:onHand/avg,cover:(onHand+onOrder)/avg,hist,age:age.map(a=>Math.round(a*onHand))});
+}));
+rows.forEach(r=>{
+  if(r.na) return;
+  const daysLeft=r.wos*7;
+  r.stockoutDate=addDays(TODAY,Math.floor(daysLeft));
+  r.gapDays = r.onOrder>0 ? Math.max(0, r.eta - Math.floor(daysLeft)) : null;
+  if(r.wos<3 && (r.onOrder===0 || r.eta>daysLeft)) r.status="crit";
+  else if(r.wos<5) r.status="warn";
+  else if(r.cover>12) r.status="over";
+  else r.status="good";
+});
+
+const CP = {
+ A:{fill:[98.6,99.1,97.9,98.8,99.3,98.4,99.0,98.7],otd:[96,97,95,98,96,97,96,97]},
+ B:{fill:[97.8,96.4,95.1,94.0,96.2,92.7,93.5,91.8],otd:[93,91,88,86,90,84,85,82]},
+ C:{fill:[98.9,98.2,98.6,97.4,98.8,99.2,98.1,98.5],otd:[95,94,96,93,95,96,94,95]}
+};
+const POS = [
+ {po:"PO-24117",cp:"B",sku:"D1-01",prov:"ON",ord:6000,rec:4920,due:-3,status:"Short-fill"},
+ {po:"PO-24121",cp:"B",sku:"D1-06",prov:"AB",ord:3200,rec:0,due:-5,status:"Late"},
+ {po:"PO-24123",cp:"B",sku:"L1-01",prov:"ON",ord:2400,rec:0,due:2,status:"Confirmed"},
+ {po:"PO-24126",cp:"C",sku:"C1-02",prov:"SK",ord:220,rec:0,due:6,status:"Confirmed"},
+ {po:"PO-24128",cp:"A",sku:"D1-03",prov:"ON",ord:2150,rec:0,due:12,status:"Confirmed"},
+ {po:"PO-24130",cp:"B",sku:"D1-02",prov:"ON",ord:5000,rec:0,due:null,status:"Needs PO"},
+ {po:"PO-24131",cp:"C",sku:"C1-01",prov:"AB",ord:900,rec:0,due:10,status:"Hold: overstock"},
+ {po:"PO-24109",cp:"A",sku:"C1-03",prov:"ON",ord:1800,rec:1800,due:-8,status:"Closed"}
+];
+const RECON = [
+ {prov:"ON",ours:96420,cp:96420,board:95880,cause:"In-transit: 540 units shipped Oct 23, not yet receipted by the board",state:"Timing"},
+ {prov:"AB",ours:61210,cp:61610,board:61210,cause:"PO-24117 short-fill booked at ordered qty in co-packer log; corrected",state:"Resolved"},
+ {prov:"SK",ours:8840,cp:8840,board:8655,cause:"Board count adjustment (185 units), damaged product claim opened",state:"Open"},
+ {prov:"MB",ours:7390,cp:7390,board:7372,cause:"Within tolerance",state:"OK"}
+];
+
+/* ---------- state ---------- */
+const state={prov:"ALL",fmt:"ALL"};
+const visRows=()=>rows.filter(r=>!r.na&&(state.prov==="ALL"||r.prov.id===state.prov)&&(state.fmt==="ALL"||r.sku.fmt===state.fmt));
+
+/* ---------- tooltip ---------- */
+const tip=document.getElementById("tip");
+function showTip(e,html){ tip.innerHTML=html; tip.style.opacity=1; moveTip(e); }
+function moveTip(e){ const pad=14, w=tip.offsetWidth, h=tip.offsetHeight; let x=e.clientX+pad, y=e.clientY+pad; if(x+w>innerWidth-8) x=e.clientX-w-pad; if(y+h>innerHeight-8) y=e.clientY-h-pad; tip.style.left=x+"px"; tip.style.top=y+"px"; }
+function hideTip(){ tip.style.opacity=0; }
+const trow=(k,v)=>`<div class="row"><span>${k}</span><b>${v}</b></div>`;
+
+/* ---------- filters ---------- */
+function seg(el,opts,key){
+  el.innerHTML=opts.map(o=>`<button type="button" data-v="${o[0]}" aria-pressed="${state[key]===o[0]}">${o[1]}</button>`).join("");
+  el.onclick=e=>{ const b=e.target.closest("button"); if(!b) return; state[key]=b.dataset.v; [...el.children].forEach(c=>c.setAttribute("aria-pressed",c.dataset.v===state[key])); renderAll(); };
+}
+seg(document.getElementById("fProv"),[["ALL","All"],["ON","ON"],["AB","AB"],["SK","SK"],["MB","MB"]],"prov");
+seg(document.getElementById("fFmt"),[["ALL","All"],["Disposable","Disposable"],["510 Cartridge","510 Cart"],["Liquid Diamonds","Liquid Diamonds"]],"fmt");
+
+/* ---------- KPIs ---------- */
+const STATUS={crit:["Stock-out risk","t-crit","!"],warn:["Watch","t-warn","!"],good:["Healthy","t-good","✓"],over:["Overstock","t-over","↑"]};
+function renderKPIs(){
+  const v=visRows(); const tot=v.reduce((a,r)=>a+r.onHand,0), sell=v.reduce((a,r)=>a+r.avg,0);
+  const crit=v.filter(r=>r.status==="crit").length, watch=v.filter(r=>r.status==="warn").length, over=v.filter(r=>r.status==="over").length;
+  const exp=v.reduce((a,r)=>a+r.age[0]+r.age[1],0);
+  const cps=state.prov==="ALL"?["A","B","C"]:[...new Set(v.map(r=>r.sku.cp))];
+  const fill=cps.length?cps.reduce((a,c)=>a+CP[c].fill.slice(-4).reduce((x,y)=>x+y,0)/4,0)/cps.length:0;
+  const otd=cps.length?cps.reduce((a,c)=>a+CP[c].otd.slice(-4).reduce((x,y)=>x+y,0)/4,0)/cps.length:0;
+  const k=[
+    ["Network weeks of supply",(tot/Math.max(1,sell)).toFixed(1),`${nf(tot)} units on hand`,"var(--s1)"],
+    ["SKU-boards at stock-out risk",crit,`${watch} more on watch`,"var(--crit)"],
+    ["Overstocked SKU-boards",over,"Over 12 weeks incl. on-order","var(--s1)"],
+    ["Co-packer fill rate, 4 wk",fill.toFixed(1)+"%","Target 98%",fill<98?"var(--serious)":"var(--good)"],
+    ["On-time delivery, 4 wk",otd.toFixed(0)+"%","Target 95%",otd<95?"var(--serious)":"var(--good)"],
+    ["Units within 90 days of limit",nf(exp),`${(100*exp/Math.max(1,tot)).toFixed(1)}% of on-hand`,"var(--serious)"]
+  ];
+  document.getElementById("kpis").innerHTML=k.map(x=>`<div class="kpi"><div class="k"><span class="dot" style="background:${x[3]}"></span>${x[0]}</div><div class="v">${x[1]}</div><div class="d">${x[2]}</div></div>`).join("");
+}
+
+/* ---------- heatmap ---------- */
+let heatAsTable=false;
+document.getElementById("heatToggle").onclick=function(){ heatAsTable=!heatAsTable; this.textContent=heatAsTable?"View as heatmap":"View as table"; renderHeat(); };
+function cellTip(r){
+  return `<div class="tt">${r.sku.name} ${r.sku.size} · ${r.prov.name}</div>`+
+    `<div style="margin-bottom:5px"><span class="tag ${STATUS[r.status][1]}"><i>${STATUS[r.status][2]}</i>${STATUS[r.status][0]}</span></div>`+
+    trow("On hand",nf(r.onHand))+trow("Avg weekly sell-through",nf(r.avg))+trow("Weeks of supply",r.wos.toFixed(1))+
+    trow("On order",r.onOrder?nf(r.onOrder)+" (ETA "+fmtDate(addDays(TODAY,r.eta))+")":"None")+
+    trow("Projected stock-out",fmtDate(r.stockoutDate))+(r.gapDays?trow("Days with no stock",r.gapDays):"")+trow("Co-packer",r.sku.cp);
+}
+function renderHeat(){
+  const wrap=document.getElementById("heatWrap");
+  const provs=PROVS.filter(p=>state.prov==="ALL"||p.id===state.prov);
+  const skus=SKUS.filter(s=>state.fmt==="ALL"||s.fmt===state.fmt);
+  const sev={crit:0,warn:1,over:2,good:3};
+  const sorted=[...skus].sort((a,b)=>{
+    const f=s=>Math.min(...rows.filter(r=>r.sku===s&&!r.na&&provs.includes(r.prov)).map(r=>sev[r.status]*100+r.wos));
+    return f(a)-f(b);
+  });
+  if(heatAsTable){
+    const v=visRows().sort((a,b)=>sev[a.status]-sev[b.status]||a.wos-b.wos);
+    wrap.innerHTML=`<table><thead><tr><th>SKU</th><th>Province</th><th class="num">On hand</th><th class="num">Avg / wk</th><th class="num">WOS</th><th class="num">On order</th><th>ETA</th><th>Status</th></tr></thead><tbody>`+
+      v.map(r=>`<tr><td>${r.sku.name} <span style="color:var(--muted)">${r.sku.fmt}</span></td><td>${r.prov.id}</td><td class="num">${nf(r.onHand)}</td><td class="num">${nf(r.avg)}</td><td class="num">${r.wos.toFixed(1)}</td><td class="num">${r.onOrder?nf(r.onOrder):"-"}</td><td>${r.onOrder?fmtDate(addDays(TODAY,r.eta)):"-"}</td><td><span class="tag ${STATUS[r.status][1]}"><i>${STATUS[r.status][2]}</i>${STATUS[r.status][0]}</span></td></tr>`).join("")+`</tbody></table>`;
+    return;
+  }
+  let h=`<div class="heat" style="grid-template-columns:minmax(170px,1.6fr) repeat(${provs.length},minmax(84px,1fr))"><div class="hh l">SKU</div>`+provs.map(p=>`<div class="hh">${p.name}</div>`).join("");
+  sorted.forEach(s=>{
+    h+=`<div class="rl"><span>${s.name}${s.launch?' <span class="owner" style="font-size:10px;padding:1px 6px">New launch</span>':""}</span><small>${s.fmt} · ${s.size} · ${s.id}</small></div>`;
+    provs.forEach(p=>{
+      const r=rows.find(x=>x.sku===s&&x.prov===p);
+      if(r.na){ h+=`<div class="cell c-na" title="Not listed">n/a</div>`; return; }
+      const ic=r.status==="crit"?'<span class="ic" aria-hidden="true" style="color:var(--crit-ink)">!</span>':r.status==="over"?'<span class="ic" aria-hidden="true">↑</span>':"";
+      h+=`<div class="cell c-${r.status}" tabindex="0" data-k="${s.id}|${p.id}" aria-label="${s.name} ${p.name}: ${r.wos.toFixed(1)} weeks, ${STATUS[r.status][0]}">${ic}${r.wos.toFixed(1)}</div>`;
+    });
+  });
+  wrap.innerHTML=h+"</div>";
+  wrap.querySelectorAll(".cell[data-k]").forEach(c=>{
+    const r=rows.find(x=>x.sku.id+"|"+x.prov.id===c.dataset.k);
+    c.onmouseenter=e=>showTip(e,cellTip(r)); c.onmousemove=moveTip; c.onmouseleave=hideTip;
+    c.onfocus=()=>{ const b=c.getBoundingClientRect(); showTip({clientX:b.right,clientY:b.bottom},cellTip(r)); }; c.onblur=hideTip;
+  });
+}
+
+/* ---------- action list ---------- */
+function renderActions(){
+  const v=visRows(); const items=[];
+  v.filter(r=>r.status==="crit").forEach(r=>{
+    const po=POS.find(p=>p.sku===r.sku.id&&p.prov===r.prov.id);
+    let act = r.onOrder===0 ? `No open PO. Raise ${nf(r.avg*6)} units with Co-packer ${r.sku.cp} today; ask for partial ship.` :
+      `PO lands ${fmtDate(addDays(TODAY,r.eta))}, ${r.gapDays} days after projected stock-out. Request expedite or partial ship from Co-packer ${r.sku.cp}.`;
+    const donor=rows.find(x=>x.sku===r.sku&&!x.na&&x.prov!==r.prov&&x.status==="over");
+    if(donor) act+=` ${donor.prov.id} is overstocked on this SKU: redirect its next allocation.`;
+    if(po&&po.status==="Short-fill") act=`${po.po} short-filled by ${nf(po.ord-po.rec)} units. Escalate balance with Co-packer ${po.cp} today; `+act.charAt(0).toLowerCase()+act.slice(1);
+    items.push({sev:0,days:Math.floor(r.wos*7),tag:"crit",what:`${r.sku.name} ${r.sku.fmt}, ${r.prov.id}`,issue:`Out in ~${Math.max(1,Math.floor(r.wos*7))} days (${fmtDate(r.stockoutDate)})`,act,owner:"Supply chain + co-packer"});
+  });
+  POS.filter(p=>(state.prov==="ALL"||p.prov===state.prov)&&p.status==="Short-fill").forEach(p=>{
+    const s=SKUS.find(x=>x.id===p.sku); if(state.fmt!=="ALL"&&s.fmt!==state.fmt) return;
+    const r=rows.find(x=>x.sku===s&&x.prov.id===p.prov);
+    items.push({sev:1,days:2,tag:"serious",what:`${p.po} · ${s.name}, ${p.prov}`,issue:`Short-filled ${nf(p.ord-p.rec)} units (${(100*p.rec/p.ord).toFixed(0)}% fill)`,act:`Escalate the balance with Co-packer ${p.cp} today and get a ship date in writing. ${p.prov} is at ${r.wos.toFixed(1)} weeks of supply, so the gap matters.`,owner:"Supply chain"});
+  });
+  POS.filter(p=>(state.prov==="ALL"||p.prov===state.prov)&&p.status==="Needs PO").forEach(p=>{
+    const s=SKUS.find(x=>x.id===p.sku); if(state.fmt!=="ALL"&&s.fmt!==state.fmt) return;
+    if(visRows().some(r=>r.sku===s&&r.prov.id===p.prov&&r.status==="crit")) return;
+    items.push({sev:1,days:4,tag:"serious",what:`${s.name}, ${p.prov}`,issue:`Replenishment PO not raised`,act:`Raise ${nf(p.ord)} units with Co-packer ${p.cp} this week.`,owner:"Supply chain"});
+  });
+  POS.filter(p=>(state.prov==="ALL"||p.prov===state.prov)&&p.status==="Late").forEach(p=>{
+    const s=SKUS.find(x=>x.id===p.sku); if(state.fmt!=="ALL"&&s.fmt!==state.fmt) return;
+    items.push({sev:1,days:3,tag:"serious",what:`${p.po} · ${s.name}, ${p.prov}`,issue:`${-p.due} days late, ${nf(p.ord)} units`,act:`Get a confirmed ship date in writing from Co-packer ${p.cp}; flag to sales for ${p.prov} launch timing.`,owner:"Supply chain"});
+  });
+  v.filter(r=>r.age[0]>0).sort((a,b)=>b.age[0]-a.age[0]).slice(0,3).forEach(r=>{
+    const dest=rows.filter(x=>x.sku===r.sku&&!x.na&&x.prov!==r.prov&&(x.status==="crit"||x.status==="warn"))[0];
+    items.push({sev:2,days:20,tag:"serious",what:`${r.sku.name} ${r.sku.fmt}, ${r.prov.id}`,issue:`${nf(r.age[0])} units within 30 days of freshness limit`,act:dest?`Reallocate to ${dest.prov.id} (${dest.wos.toFixed(1)} WOS) in next order cycle; confirm with board.`:`Review return or destruction plan with Commercial Coordinator; pause replenishment.`,owner:"Commercial Coordinator"});
+  });
+  v.filter(r=>r.status==="over"&&r.age[0]===0).slice(0,2).forEach(r=>{
+    items.push({sev:3,days:60,tag:"over",what:`${r.sku.name} ${r.sku.fmt}, ${r.prov.id}`,issue:`${r.cover.toFixed(1)} weeks of coverage`,act:`Hold or reduce open POs; use this stock to cover other boards before new production.`,owner:"Supply chain + sales"});
+  });
+  RECON.filter(x=>(state.prov==="ALL"||x.prov===state.prov)&&x.state==="Open").forEach(x=>{
+    items.push({sev:2,days:30,tag:"warn",what:`Reconciliation, ${x.prov}`,issue:`${nf(x.ours-x.board)} unit variance vs board report`,act:x.cause+". Close with board before month-end.",owner:"Supply chain"});
+  });
+  items.sort((a,b)=>a.sev-b.sev||a.days-b.days);
+  const lab={crit:["Critical","!"],serious:["High","!"],warn:["Medium","•"],over:["Low","↑"]};
+  document.getElementById("actions").innerHTML=`<thead><tr><th>Priority</th><th>Item</th><th>Issue</th><th>Next step</th><th>Owner</th></tr></thead><tbody>`+
+    (items.length?items.map(i=>`<tr><td><span class="tag t-${i.tag==="over"?"over":i.tag}"><i>${lab[i.tag][1]}</i>${lab[i.tag][0]}</span></td><td style="font-weight:600;white-space:nowrap">${i.what}</td><td style="white-space:nowrap">${i.issue}</td><td style="color:var(--ink-2);min-width:280px">${i.act}</td><td><span class="owner">${i.owner}</span></td></tr>`).join(""):`<tr><td colspan="5" style="color:var(--muted)">No exceptions for this filter.</td></tr>`)+`</tbody>`;
+}
+
+/* ---------- line chart ---------- */
+function lineChart(el,{series,labels,yMin,yMax,yFmt,target,targetLabel,splitAt,h=230,ticks=5}){
+  const W=Math.max(300,el.clientWidth), H=h, m={t:12,r:16,b:26,l:46};
+  const iw=W-m.l-m.r, ih=H-m.t-m.b, n=labels.length;
+  const x=i=>m.l+(n===1?iw/2:i*iw/(n-1)), y=v=>m.t+ih-(v-yMin)/(yMax-yMin)*ih;
+  let g="";
+  for(let i=0;i<=ticks;i++){ const v=yMin+(yMax-yMin)*i/ticks; g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${y(v)+4}" text-anchor="end">${yFmt(v)}</text>`; }
+  const every=Math.ceil(n/(W<500?5:8));
+  labels.forEach((l,i)=>{ if((i%every===0&&(n-1-i>=every||i===n-1))||i===n-1) g+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle">${l}</text>`; });
+  if(splitAt!=null){ g+=`<rect x="${x(splitAt)}" y="${m.t}" width="${x(n-1)-x(splitAt)}" height="${ih}" fill="var(--surface-2)"/><text x="${x(splitAt)+6}" y="${m.t+12}" text-anchor="start">Forecast</text>`; }
+  if(target!=null){ g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(target)}" y2="${y(target)}" stroke="var(--ink-2)" stroke-dasharray="4 4" stroke-width="1"/>`; }
+  let p="";
+  series.forEach(s=>{
+    let d="",started=false;
+    s.values.forEach((v,i)=>{ if(v==null){started=false;return;} d+=(started?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1); started=true; });
+    p+=`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" ${s.dash?'stroke-dasharray="5 4"':""}/>`;
+  });
+  g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${m.t+ih}" y2="${m.t+ih}" stroke="var(--axis)"/>`;
+  el.innerHTML=`<svg class="chart" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img">${g}${p}<line class="xh" y1="${m.t}" y2="${m.t+ih}" stroke="var(--ink-2)" stroke-width="1" opacity="0"/><g class="dots"></g><rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" class="hit"/></svg>`;
+  const svg=el.querySelector("svg"), xh=svg.querySelector(".xh"), dots=svg.querySelector(".dots"), hit=svg.querySelector(".hit");
+  hit.addEventListener("mousemove",e=>{
+    const b=svg.getBoundingClientRect(); const px=(e.clientX-b.left)*(W/b.width);
+    const i=Math.max(0,Math.min(n-1,Math.round((px-m.l)/(iw/(n-1)))));
+    xh.setAttribute("x1",x(i)); xh.setAttribute("x2",x(i)); xh.setAttribute("opacity",.5);
+    dots.innerHTML=series.filter(s=>s.values[i]!=null).map(s=>`<circle cx="${x(i)}" cy="${y(s.values[i])}" r="4.5" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`).join("");
+    showTip(e,`<div class="tt">${labels[i]}</div>`+series.filter(s=>s.values[i]!=null).map(s=>`<div class="row"><span><span class="ln" style="background:${s.color};vertical-align:middle;margin-right:6px"></span>${s.name}</span><b>${yFmt(s.values[i],true)}</b></div>`).join(""));
+  });
+  hit.addEventListener("mouseleave",()=>{ xh.setAttribute("opacity",0); dots.innerHTML=""; hideTip(); });
+}
+const nice=(v)=>{ const p=Math.pow(10,Math.floor(Math.log10(v))); return Math.ceil(v/p/ (v/p>5?2:1))*p*(v/p>5?2:1); };
+
+function renderForecast(){
+  const v=visRows(); const actual=Array(12).fill(0);
+  v.forEach(r=>r.hist.forEach((u,i)=>actual[i]+=u));
+  const fc=[]; for(let i=0;i<12;i++){ if(i<4){fc.push(null);continue;} const ma=(actual[i-1]+actual[i-2]+actual[i-3]+actual[i-4])/4; const tr=(actual[i-1]-actual[i-4])/3*.5; fc.push(Math.round(ma+tr)); }
+  const last4=actual.slice(8).reduce((a,b)=>a+b,0)/4, tr=(actual[11]-actual[8])/3*.5;
+  const fut=[1,2,3,4].map(k=>Math.round(last4+tr*k));
+  const labels=[]; for(let i=11;i>=0;i--) labels.push(fmtDate(addDays(WEEK_END,-7*i))); [1,2,3,4].forEach(k=>labels.push(fmtDate(addDays(WEEK_END,7*k))));
+  const act=[...actual,null,null,null,null], f=[...fc,...fut]; f[11]=f[11]??actual[11];
+  let mape=0,c=0; for(let i=4;i<12;i++){ if(actual[i]>0){ mape+=Math.abs(actual[i]-fc[i])/actual[i]; c++; } }
+  document.getElementById("fcSub").textContent=`Weekly units, last 12 weeks plus a 4-week forward forecast. Backtest MAPE ${(100*mape/Math.max(1,c)).toFixed(1)}%. Next 4 weeks: ${nf(fut.reduce((a,b)=>a+b,0))} units.`;
+  const mx=Math.max(...actual,...fut)*1.1;
+  lineChart(document.getElementById("fcChart"),{labels,series:[{name:"Actual",color:"var(--s1)",values:act},{name:"Forecast",color:"var(--s2)",values:f,dash:true}],yMin:0,yMax:nice(mx),yFmt:(v,full)=>full?nf(v):(v>=1000?(v/1000).toFixed(v>=10000?0:1)+"k":nf(v)),splitAt:11});
+}
+function renderCP(){
+  const labels=[]; for(let i=7;i>=0;i--) labels.push(fmtDate(addDays(WEEK_END,-7*i)));
+  const cols={A:"var(--s1)",B:"var(--s2)",C:"var(--s3)"};
+  lineChart(document.getElementById("fillChart"),{labels,series:["A","B","C"].map(k=>({name:"Co-packer "+k,color:cols[k],values:CP[k].fill})),yMin:88,yMax:100,ticks:6,yFmt:(v,full)=>full?v.toFixed(1)+"%":v.toFixed(0)+"%",target:98,targetLabel:"Target 98%",h:210});
+  lineChart(document.getElementById("otdChart"),{labels,series:["A","B","C"].map(k=>({name:"Co-packer "+k,color:cols[k],values:CP[k].otd})),yMin:75,yMax:100,ticks:5,yFmt:(v,full)=>v.toFixed(0)+"%",target:95,targetLabel:"Target 95%",h:210});
+}
+
+/* ---------- aged inventory stacked bars ---------- */
+function renderAge(){
+  const el=document.getElementById("ageChart");
+  const provs=PROVS.filter(p=>state.prov==="ALL"||p.id===state.prov);
+  const data=provs.map(p=>{ const b=[0,0,0,0]; visRows().filter(r=>r.prov===p).forEach(r=>r.age.forEach((u,i)=>b[i]+=u)); return {p,b,t:b.reduce((a,c)=>a+c,0)}; });
+  const cols=["var(--crit)","var(--serious)","var(--warn)","var(--neutral)"], names=["30 days or less","31 to 90 days","91 to 180 days","Over 180 days"];
+  const W=Math.max(280,el.clientWidth), rowH=34, gap=14, m={t:4,r:12,b:8,l:96}; const H=m.t+m.b+data.length*(rowH+gap)-gap+18;
+  const iw=W-m.l-m.r;
+  let s="";
+  data.forEach((d,i)=>{
+    const y=m.t+i*(rowH+gap); let x=m.l;
+    s+=`<text x="${m.l-10}" y="${y+rowH/2-2}" text-anchor="end" style="fill:var(--ink);font-size:12px;font-weight:600">${d.p.name}</text><text x="${m.l-10}" y="${y+rowH/2+12}" text-anchor="end">${nf(d.t)} units</text>`;
+    d.b.forEach((u,j)=>{
+      if(!d.t) return; const w=u/d.t*iw; if(w<=0) return;
+      const ww=Math.max(0,w-2);
+      s+=`<rect class="seg" data-i="${i}" data-j="${j}" x="${x}" y="${y}" width="${ww}" height="${rowH}" rx="4" fill="${cols[j]}"/>`;
+      if(ww>38) s+=`<text x="${x+ww/2}" y="${y+rowH/2+4}" text-anchor="middle" style="fill:${j===2||j===3?"#0b0b0b":"#fff"};font-size:11px;font-weight:600;pointer-events:none">${(100*u/d.t).toFixed(0)}%</text>`;
+      x+=w;
+    });
+  });
+  el.innerHTML=`<svg class="chart" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Aged inventory by province">${s}</svg>`;
+  el.querySelectorAll("rect.seg").forEach(r=>{
+    const d=data[+r.dataset.i], j=+r.dataset.j;
+    r.onmouseenter=e=>{ r.setAttribute("stroke","var(--ink)"); r.setAttribute("stroke-width","1.5"); showTip(e,`<div class="tt">${d.p.name} · ${names[j]}</div>`+trow("Units",nf(d.b[j]))+trow("Share of on-hand",(100*d.b[j]/d.t).toFixed(1)+"%")); };
+    r.onmousemove=moveTip; r.onmouseleave=()=>{ r.removeAttribute("stroke"); hideTip(); };
+  });
+}
+
+/* ---------- PO + recon tables ---------- */
+function renderPOs(){
+  const st={"Short-fill":"t-crit","Late":"t-serious","Needs PO":"t-crit","Confirmed":"t-good","Hold: overstock":"t-over","Closed":"t-neutral"};
+  const ic={"Short-fill":"!","Late":"!","Needs PO":"!","Confirmed":"✓","Hold: overstock":"↑","Closed":"✓"};
+  const list=POS.filter(p=>(state.prov==="ALL"||p.prov===state.prov)&&(state.fmt==="ALL"||SKUS.find(s=>s.id===p.sku).fmt===state.fmt));
+  document.getElementById("pos").innerHTML=`<thead><tr><th>PO</th><th>Co-packer</th><th>SKU</th><th>Board</th><th class="num">Ordered</th><th class="num">Received</th><th class="num">Fill</th><th>Due</th><th>Status</th></tr></thead><tbody>`+
+    (list.length?list.map(p=>{ const s=SKUS.find(x=>x.id===p.sku); const fill=p.rec?(100*p.rec/p.ord).toFixed(0)+"%":"-";
+      const due=p.due==null?"Not raised":fmtDate(addDays(TODAY,p.due))+(p.due<0&&p.status!=="Closed"&&p.status!=="Short-fill"?` <span style="color:var(--crit-ink);font-weight:600">(${-p.due}d late)</span>`:"");
+      return `<tr><td style="font-weight:600">${p.po}</td><td>${p.cp}</td><td>${s.name} <span style="color:var(--muted)">${s.fmt}</span></td><td>${p.prov}</td><td class="num">${nf(p.ord)}</td><td class="num">${p.rec?nf(p.rec):"-"}</td><td class="num">${fill}</td><td style="white-space:nowrap">${due}</td><td><span class="tag ${st[p.status]}"><i>${ic[p.status]}</i>${p.status}</span></td></tr>`; }).join(""):`<tr><td colspan="9" style="color:var(--muted)">No open POs for this filter.</td></tr>`)+`</tbody>`;
+}
+function renderRecon(){
+  const st={Timing:["t-warn","•"],Resolved:["t-good","✓"],Open:["t-crit","!"],OK:["t-good","✓"]};
+  const list=RECON.filter(x=>state.prov==="ALL"||x.prov===state.prov);
+  document.getElementById("recon").innerHTML=`<thead><tr><th>Board</th><th class="num">Our records</th><th class="num">Co-packer log</th><th class="num">Board report</th><th class="num">Variance</th><th>Root cause</th><th>Status</th></tr></thead><tbody>`+
+    list.map(x=>{ const v=Math.max(Math.abs(x.ours-x.board),Math.abs(x.ours-x.cp)); const pct=100*v/x.ours;
+      return `<tr><td style="font-weight:600">${x.prov}</td><td class="num">${nf(x.ours)}</td><td class="num">${nf(x.cp)}</td><td class="num">${nf(x.board)}</td><td class="num" style="${pct>.5?"color:var(--crit-ink);font-weight:600":""}">${nf(v)} (${pct.toFixed(2)}%)</td><td style="color:var(--ink-2);min-width:220px">${x.cause}</td><td><span class="tag ${st[x.state][0]}"><i>${st[x.state][1]}</i>${x.state}</span></td></tr>`; }).join("")+`</tbody>`;
+}
+
+/* ---------- theme ---------- */
+const themeBtn=document.getElementById("themeBtn");
+function isDark(){ const t=document.documentElement.dataset.theme; return t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches; }
+function syncThemeBtn(){ themeBtn.textContent=isDark()?"Light mode":"Dark mode"; }
+themeBtn.onclick=()=>{ document.documentElement.dataset.theme=isDark()?"light":"dark"; try{localStorage.setItem("ihs-theme",document.documentElement.dataset.theme);}catch(e){} syncThemeBtn(); };
+try{ const t=localStorage.getItem("ihs-theme"); if(t) document.documentElement.dataset.theme=t; }catch(e){}
+syncThemeBtn();
+
+document.getElementById("weekLabel").textContent=`Weekly supply chain scorecard · Week ending ${WEEK_END.toLocaleDateString("en-CA",{month:"long",day:"numeric",year:"numeric"})}`;
+
+function renderAll(){ renderKPIs(); renderHeat(); renderActions(); renderForecast(); renderAge(); renderCP(); renderPOs(); renderRecon(); }
+renderAll();
+let rt; addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(()=>{ renderForecast(); renderAge(); renderCP(); },120); });
+})();
+</script>
+</body>
+</html>
